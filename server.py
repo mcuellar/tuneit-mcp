@@ -44,6 +44,58 @@ def ensure_directories():
     RESUMES_DIR.mkdir(parents=True, exist_ok=True)
 
 
+def sanitize_filename(filename: str, default: str) -> str:
+    """Sanitize a filename by removing invalid characters.
+
+    Args:
+        filename: The filename to sanitize.
+        default: Default filename if sanitized result is empty.
+
+    Returns:
+        A sanitized filename safe for use in file paths.
+    """
+    safe_filename = "".join(c for c in filename if c.isalnum() or c in ("-", "_", " ")).strip()
+    return safe_filename if safe_filename else default
+
+
+def get_unique_filepath(directory: Path, filename: str) -> Path:
+    """Get a unique filepath, appending a counter if needed.
+
+    Args:
+        directory: The directory to save the file in.
+        filename: The base filename (without extension).
+
+    Returns:
+        A unique filepath with .md extension.
+    """
+    filepath = directory / f"{filename}.md"
+    counter = 1
+    while filepath.exists():
+        filepath = directory / f"{filename}_{counter}.md"
+        counter += 1
+    return filepath
+
+
+def extract_response_content(response) -> str:
+    """Extract content from OpenAI response with validation.
+
+    Args:
+        response: The OpenAI chat completion response.
+
+    Returns:
+        The content from the response.
+
+    Raises:
+        ValueError: If the response is invalid or empty.
+    """
+    if not response.choices:
+        raise ValueError("OpenAI returned an empty response")
+    content = response.choices[0].message.content
+    if content is None:
+        raise ValueError("OpenAI response content is empty")
+    return content
+
+
 @mcp.tool()
 def format_to_markdown(job_description: str) -> str:
     """
@@ -81,7 +133,7 @@ Maintain all the original information while improving readability.""",
         ],
         temperature=0.3,
     )
-    return response.choices[0].message.content
+    return extract_response_content(response)
 
 
 @mcp.tool()
@@ -120,7 +172,7 @@ Return the tailored resume in the same format as the input.""",
         ],
         temperature=0.4,
     )
-    return response.choices[0].message.content
+    return extract_response_content(response)
 
 
 @mcp.tool()
@@ -136,19 +188,8 @@ def save_job(job_content: str, filename: str) -> str:
         A confirmation message with the saved file path.
     """
     ensure_directories()
-
-    # Sanitize filename and ensure .md extension
-    safe_filename = "".join(c for c in filename if c.isalnum() or c in ("-", "_", " ")).strip()
-    if not safe_filename:
-        safe_filename = "job"
-    filepath = JOBS_DIR / f"{safe_filename}.md"
-
-    # Handle duplicate filenames
-    counter = 1
-    while filepath.exists():
-        filepath = JOBS_DIR / f"{safe_filename}_{counter}.md"
-        counter += 1
-
+    safe_filename = sanitize_filename(filename, "job")
+    filepath = get_unique_filepath(JOBS_DIR, safe_filename)
     filepath.write_text(job_content, encoding="utf-8")
     return f"Job description saved successfully to: {filepath.absolute()}"
 
@@ -166,19 +207,8 @@ def save_tailored_resume(resume_content: str, filename: str) -> str:
         A confirmation message with the saved file path.
     """
     ensure_directories()
-
-    # Sanitize filename and ensure .md extension
-    safe_filename = "".join(c for c in filename if c.isalnum() or c in ("-", "_", " ")).strip()
-    if not safe_filename:
-        safe_filename = "tailored_resume"
-    filepath = RESUMES_DIR / f"{safe_filename}.md"
-
-    # Handle duplicate filenames
-    counter = 1
-    while filepath.exists():
-        filepath = RESUMES_DIR / f"{safe_filename}_{counter}.md"
-        counter += 1
-
+    safe_filename = sanitize_filename(filename, "tailored_resume")
+    filepath = get_unique_filepath(RESUMES_DIR, safe_filename)
     filepath.write_text(resume_content, encoding="utf-8")
     return f"Tailored resume saved successfully to: {filepath.absolute()}"
 
