@@ -154,15 +154,18 @@ def tailor_resume(base_resume: str, job_description: str) -> str:
         messages=[
             {
                 "role": "system",
-                "content": """You are an expert resume writer and career coach.
-Your task is to tailor the provided resume to better match the job description while:
-1. Maintaining truthfulness - only reorganize and emphasize existing skills/experience
+                "content": """You are an expert technical resume optimizer.
+Your task is to tailor the provided resume to better match the job description. Ensure to:
+1. Maintain truthfulness - only reorganize and emphasize existing skills/experience
 2. Using keywords from the job description where they honestly apply
 3. Reordering sections to highlight most relevant experience first
 4. Adjusting bullet points to emphasize relevant accomplishments
-5. Keeping the resume concise and professional
-6. Preserving the original format/structure as much as possible
-
+5. Output Markdown only — no commentary or extra sections. Use proper markdown headers where needed.
+6. Add appropriate markdown headers where needed (e.g., ## Core Skills, ## Experience).
+7. Preserving the original format/structure as much as possible
+8. Bold categorized bullets from Core Skills with **bold text:**. Example: **Programming:** Java, Python
+9. Ensure to start in a new line when writing Job Descriptions. Usually in a new line after job location and date.
+10. Keep tailored resume no more than 3 pages long.
 Return the tailored resume in the same format as the input.""",
             },
             {
@@ -211,6 +214,28 @@ def save_tailored_resume(resume_content: str, filename: str) -> str:
     filepath = get_unique_filepath(RESUMES_DIR, safe_filename)
     filepath.write_text(resume_content, encoding="utf-8")
     return f"Tailored resume saved successfully to: {filepath.absolute()}"
+
+@mcp.tool()
+def save_tailored_resume_as_pdf(resume_content: str, filename: str) -> str:
+    """
+    Save a tailored resume as a PDF to the tailored resumes folder.
+    Args:
+        resume_content: The tailored resume content to save.
+        filename: The filename to save as (without extension, .pdf will be added).
+    Returns:
+        A confirmation message with the saved file path.
+    """
+    import pypandoc
+
+    ensure_directories()
+    safe_filename = sanitize_filename(filename, "tailored_resume")
+    filepath = get_unique_filepath(RESUMES_DIR, safe_filename).with_suffix('.pdf')
+    # Convert markdown content to PDF using pypandoc
+    extra_args = ['--variable', 'geometry:margin=0.5in']
+    extra_args += ['-V', 'linkcolor:blue', '-V', 'colorlinks=true', '-V', 'urlbordercolor:{0 0 1}']
+    output = pypandoc.convert_text(resume_content, 'pdf', format='md', extra_args=extra_args)
+
+    return f"Tailored resume saved successfully as PDF to: {filepath.absolute()}"
 
 
 if __name__ == "__main__":
