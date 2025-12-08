@@ -115,16 +115,7 @@ def format_to_markdown(job_description: str) -> str:
                 "role": "system",
                 "content": """You are an expert at formatting job descriptions into clean, well-structured markdown.
 Format the job description with proper markdown headers and sections including:
-- Job Title (as H1)
-- Company (if mentioned)
-- Location (if mentioned)
-- Job Type (if mentioned)
-- About the Role / Overview
-- Responsibilities
-- Requirements / Qualifications
-- Nice to Have / Preferred Qualifications (if applicable)
-- Benefits (if mentioned)
-- How to Apply (if mentioned)
+- Salary (if mentioned) at the bottom as a last section.
 
 Use proper markdown formatting including headers (##, ###), bullet points, and bold text where appropriate.
 Maintain all the original information while improving readability.""",
